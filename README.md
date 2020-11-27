@@ -16,6 +16,8 @@ This is test-commit number2
 
 This is test-commit number3
 
+This is test-commit number6
+
 
 ## How to run it?
 
