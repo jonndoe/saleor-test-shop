@@ -7,23 +7,7 @@ All Saleor services started from a single repository
 1. [Docker](https://docs.docker.com/install/)
 2. [Docker Compose](https://docs.docker.com/compose/install/)
 
-This is test commit-fork
-
-
-This is test commit number5-fork
-
-This is test commit number7-fork
-
-
-
-
-This is test-commit number2
-
-This is test-commit number3
-
-This is test-commit number6
-
-This is test-commit number8
+test comment test comment
 
 
 ## How to run it?
