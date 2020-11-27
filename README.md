@@ -25,6 +25,8 @@ This is test-commit number6
 
 This is test-commit number8
 
+This is test-commit number9 - from fork
+
 
 ## How to run it?
 
