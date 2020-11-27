@@ -14,6 +14,8 @@ This is test commit
 
 This is test-commit number2
 
+This is test-commit number3
+
 
 ## How to run it?
 
