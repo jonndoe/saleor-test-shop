@@ -10,6 +10,9 @@ All Saleor services started from a single repository
 This is test commit
 
 
+This is test commit number5
+
+
 ## How to run it?
 
 1. Clone the repository:
