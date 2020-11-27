@@ -9,6 +9,8 @@ All Saleor services started from a single repository
 
 test comment test comment
 
+This is test-commit number9 - from fork
+
 
 ## How to run it?
 
