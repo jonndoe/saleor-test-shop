@@ -8,6 +8,11 @@ All Saleor services started from a single repository
 2. [Docker Compose](https://docs.docker.com/compose/install/)
 
 
+
+
+This is test-commit number2
+
+
 ## How to run it?
 
 1. Clone the repository:
