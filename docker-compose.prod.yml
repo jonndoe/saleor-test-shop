@@ -6,7 +6,7 @@ services:
       - 8000:8000
     build:
       context: ./saleor
-      dockerfile: ./Dockerfile
+      dockerfile: ./Dockerfile.prod
       args:
         STATIC_URL: '/static/'
     restart: unless-stopped
@@ -79,7 +79,7 @@ services:
   worker:
     build:
       context: ./saleor
-      dockerfile: ./Dockerfile
+      dockerfile: ./Dockerfile.prod
       args:
         STATIC_URL: '/static/'
     command: celery -A saleor --app=saleor.celeryconf:app worker --loglevel=info
