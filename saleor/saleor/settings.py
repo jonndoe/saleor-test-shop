@@ -585,7 +585,14 @@ JWT_TTL_REQUEST_EMAIL_CHANGE = timedelta(
     seconds=parse(os.environ.get("JWT_TTL_REQUEST_EMAIL_CHANGE", "1 hour")),
 )
 
+# This is django-cors-headers settings
 
-CORS_ORIGIN_WHITELIST = (
-    "http://localhost:3000"
+CORS_ALLOWED_ORIGINS = (
+    #'http://localhost:9000',
+    #'http://localhost:3000',
+    #'http://localhost:80',
+    'http://localhost',
 )
+
+CORS_ALLOW_CREDENTIALS = True
+
