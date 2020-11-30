@@ -1,0 +1,130 @@
+version: '3.3'
+
+services:
+  api:
+    ports:
+      - 8000:8000
+    build:
+      context: ./saleor
+      dockerfile: ./Dockerfile.prod
+      args:
+        STATIC_URL: '/static/'
+    restart: unless-stopped
+    networks:
+      - saleor-backend-tier
+    depends_on:
+      - db
+      - redis
+
+    volumes:
+      - ./saleor/saleor/:/app/saleor:Z
+      - ./saleor/templates/:/app/templates:Z
+      - ./saleor/tests/:/app/tests
+      # shared volume between worker and api for media
+      - saleor-media:/app/media
+    #command: python manage.py runserver 0.0.0.0:8000
+    env_file: common.env
+    environment:
+      - JAEGER_AGENT_HOST=jaeger
+      - STOREFRONT_URL=http://localhost:3000/
+      - DASHBOARD_URL=http://localhost:9000/
+
+  storefront:
+    build:
+      context: ./saleor-storefront
+      dockerfile: ./Dockerfile.prod
+    labels:
+      - "traefik.enable=true"                                       # Explicitly tell Traefik to expose this container
+      - "traefik.http.routers.router1.rule=Host(`localhost`)" # The domain the service will respond to
+      - "traefik.http.routers.router1.entrypoints=web"              # Allow request only from the predefined entry point named "web"
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ./saleor-dashboard
+      dockerfile: ./Dockerfile.prod
+    labels:
+      - "traefik.enable=true"                                       # Explicitly tell Traefik to expose this container
+      - "traefik.http.routers.router2.entrypoints=web"              # Allow request only from the predefined entry point named "web"
+      - "traefik.http.routers.router2.rule=Host(`localhost`) && PathPrefix(`/dashboard`)" # use www.example.com/dashboard/ <---! trailing slash!!!
+
+    restart: unless-stopped
+
+  db:
+    image: library/postgres:11.1-alpine
+    ports:
+      - 5432:5432
+    restart: unless-stopped
+    networks:
+      - saleor-backend-tier
+    volumes:
+      - saleor-db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=saleor
+      - POSTGRES_PASSWORD=saleor
+
+  redis:
+    image: library/redis:5.0-alpine
+    ports:
+      - 6379:6379
+    restart: unless-stopped
+    networks:
+      - saleor-backend-tier
+    volumes:
+      - saleor-redis:/data
+
+  worker:
+    build:
+      context: ./saleor
+      dockerfile: ./Dockerfile.prod
+      args:
+        STATIC_URL: '/static/'
+    command: celery -A saleor --app=saleor.celeryconf:app worker --loglevel=info
+    restart: unless-stopped
+    networks:
+      - saleor-backend-tier
+    env_file: common.env
+    depends_on:
+      - redis
+      - mailhog
+    volumes:
+      - ./saleor/saleor/:/app/saleor:Z,cached
+      - ./saleor/templates/:/app/templates:Z,cached
+      # shared volume between worker and api for media
+      - saleor-media:/app/media
+    environment:
+      - EMAIL_URL=smtp://mailhog:1025
+
+  mailhog:
+    image: mailhog/mailhog
+    ports: 
+      - 1025:1025 # smtp server
+      - 8025:8025 # web ui. Visit http://localhost:8025/ to check emails
+    restart: unless-stopped
+    networks:
+      - saleor-backend-tier
+
+  traefik:
+    image: "traefik:v2.2"
+    container_name: "traefik"
+    command:
+      - "--api.insecure=true"                       # Traefik will listen on port 8080 by default for API request.
+      - "--providers.docker=true"                   # Enabling docker provider
+      - "--providers.docker.exposedbydefault=false" # Do not expose containers unless explicitly told so
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "8080:8080"
+      - "80:80"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+volumes:
+  saleor-db:
+    driver: local
+  saleor-redis:
+    driver: local
+  saleor-media:
+
+networks:
+  saleor-backend-tier:
+    driver: bridge
