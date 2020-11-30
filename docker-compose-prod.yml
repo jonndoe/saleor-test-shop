@@ -1,0 +1,143 @@
+version: '2'
+
+services:
+  api:
+    expose:
+      - "8000"
+    build:
+      context: ./saleor
+      dockerfile: ./Dockerfile.prod
+      args:
+        STATIC_URL: '/static/'
+    restart: unless-stopped
+    networks:
+      - saleor-backend-tier
+      - saleor-nginx
+    depends_on:
+      - db
+      - redis
+      - jaeger
+    volumes:
+      - ./saleor/saleor/:/app/saleor:Z
+      - ./saleor/templates/:/app/templates:Z
+      - ./saleor/tests/:/app/tests
+      # shared volume between worker and api for media
+      - saleor-media:/app/media
+      - saleor-static:/app/static
+    env_file: .env
+
+  nginx:
+    build:
+      context: .
+      dockerfile: ./nginx/Dockerfile
+      # передача ссылки api и dashboard из .env
+      args:
+        - API_URI=${API_URI}
+        - APP_MOUNT_URI=${APP_MOUNT_URI}
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+    volumes: 
+      - saleor-media:/app/media
+      - saleor-static:/app/static
+      - letsencrypt:/etc/letsencrypt
+      - certbot:/var/www/certbot
+    networks:
+      - saleor-nginx
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+
+  certbot:
+    image: certbot/certbot
+    restart: unless-stopped
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - certbot:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+  db:
+    image: library/postgres:11.1-alpine
+    ports:
+      - 5432:5432
+    restart: unless-stopped
+    networks:
+      - saleor-backend-tier
+    volumes:
+      - saleor-db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=saleor
+      - POSTGRES_PASSWORD=saleor
+
+  redis:
+    image: library/redis:5.0-alpine
+    ports:
+      - 6379:6379
+    restart: unless-stopped
+    networks:
+      - saleor-backend-tier
+    volumes:
+      - saleor-redis:/data
+
+  worker:
+    build:
+      context: ./saleor
+      dockerfile: ./Dockerfile.prod
+      args:
+        STATIC_URL: '/static/'
+    command: celery -A saleor --app=saleor.celeryconf:app worker --loglevel=info
+    restart: unless-stopped
+    networks:
+      - saleor-backend-tier
+    env_file: common.env
+    depends_on:
+      - redis
+      - mailhog
+    volumes:
+      - ./saleor/saleor/:/app/saleor:Z,cached
+      - ./saleor/templates/:/app/templates:Z,cached
+      # shared volume between worker and api for media
+      - saleor-media:/app/media
+      - saleor-static:/app/static
+    environment:
+      - EMAIL_URL=smtp://mailhog:1025
+
+  jaeger:
+    image: jaegertracing/all-in-one
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+      - "9411:9411"
+    restart: unless-stopped
+    networks:
+      - saleor-backend-tier
+
+  mailhog:
+    image: mailhog/mailhog
+    ports: 
+      - 1025:1025 # smtp server
+      - 8025:8025 # web ui. Visit http://localhost:8025/ to check emails
+    restart: unless-stopped
+    networks:
+      - saleor-backend-tier
+
+volumes:
+  saleor-db:
+    driver: local
+  saleor-redis:
+    driver: local
+  storefront:
+  dashboard:
+  saleor-media:
+  saleor-static:
+  letsencrypt:
+  certbot:
+
+networks:
+  saleor-backend-tier:
+    driver: bridge
+  saleor-nginx:

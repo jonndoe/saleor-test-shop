@@ -8,9 +8,9 @@ RUN apt-get -y update \
   && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-COPY requirements_dev.txt /app/
+COPY requirements.txt /app/
 WORKDIR /app
-RUN pip install -r requirements_dev.txt
+RUN pip install -r requirements.txt
 
 ### Final image
 FROM python:3.8-slim
@@ -45,5 +45,4 @@ RUN SECRET_KEY=dummy STATIC_URL=${STATIC_URL} python3 manage.py collectstatic --
 EXPOSE 8000
 ENV PYTHONUNBUFFERED 1
 
-CMD ["gunicorn", "--bind", ":8000", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "saleor.asgi:application"]
-
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "saleor.asgi:application"]

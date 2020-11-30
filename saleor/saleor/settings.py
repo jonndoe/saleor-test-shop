@@ -68,8 +68,8 @@ DATABASES = {
 }
 
 
-TIME_ZONE = "UTC"
-LANGUAGE_CODE = "en"
+TIME_ZONE = "Europe/Moscow"
+LANGUAGE_CODE = "ru"
 LANGUAGES = [
     ("ar", "Arabic"),
     ("az", "Azerbaijani"),
