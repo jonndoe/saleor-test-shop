@@ -1,3 +1,14 @@
+
+# Work in progress of creating production-ready configuration for saleor-platform.
+
+
+
+
+
+
+
+
+
 # saleor-platform
 All Saleor services started from a single repository
 
